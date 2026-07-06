@@ -1,18 +1,15 @@
-"""
-RobiDev AI - Chatbot Logic
-v0.3: Rule-based responses, now with basic memory support
-(remembers the user's name across sessions) and improved
-intro-phrase detection.
-"""
-
-
 def get_response(user_input: str, memory: dict) -> str:
     text = user_input.lower()
 
     # --- Learn the user's name from several common phrasings ---
+    # Triggers that are safe to trust directly (unambiguous)
     direct_triggers = ["my name is", "call me", "you can call me"]
+
+    # Triggers that need a safeguard, since "I'm"/"I am" often introduce
+    # feelings or states, not names (e.g. "I'm hungry", "I'm tired")
     guarded_triggers = ["i am", "i'm"]
 
+    # Words that mean the sentence is NOT actually an introduction
     non_name_words = {
         "hungry", "tired", "fine", "good", "okay", "ok", "doing",
         "not", "just", "here", "sorry", "happy", "sad", "busy",
@@ -22,22 +19,16 @@ def get_response(user_input: str, memory: dict) -> str:
     name = None
 
     for trigger in direct_triggers:
-        idx = text.find(trigger)
-        if idx != -1:
-            remainder = user_input[idx + len(trigger):].strip()
-            if remainder:
-                name = remainder.split(" ")[0]
+        if trigger in text:
+            name = user_input.split(trigger, maxsplit=1)[-1].strip().split(" ")[0]
             break
 
     if name is None:
         for trigger in guarded_triggers:
-            idx = text.find(trigger)
-            if idx != -1:
-                remainder = user_input[idx + len(trigger):].strip()
-                if remainder:
-                    candidate = remainder.split(" ")[0]
-                    if candidate.lower().strip(".,!?") not in non_name_words:
-                        name = candidate
+            if trigger in text:
+                candidate = user_input.split(trigger, maxsplit=1)[-1].strip().split(" ")[0]
+                if candidate.lower().strip(".,!?") not in non_name_words:
+                    name = candidate
                 break
 
     if name:
@@ -45,6 +36,7 @@ def get_response(user_input: str, memory: dict) -> str:
         memory["user_name"] = name
         return f"Nice to meet you, {name}! I'll remember that."
 
+    # --- Personalized greeting if we already know their name ---
     if "hello" in text or "hi" in text:
         if memory.get("user_name"):
             return f"Hello {memory['user_name']}! How can I help you today?"
