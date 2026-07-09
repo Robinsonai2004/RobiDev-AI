@@ -1,9 +1,16 @@
 """
 RobiDev AI - Intent Data
-v0.3 Step 2: keyword-based intents for natural conversation variety.
-Add new intents here without touching matching logic in intent_matcher.py.
-NOTE: "your name" and "how are you" are handled directly in chatbot.py
-already - they are intentionally NOT duplicated here.
+v0.3 Step 3: keyword-based intents for natural conversation variety.
+
+HOW TO ADD A NEW INTENT:
+1. Add a new key to INTENTS below, e.g. "joke": {...}
+2. Give it a "keywords" list (phrases that should trigger it)
+3. Give it a "responses" list (one or more possible replies)
+That's it - no changes needed in chatbot.py or intent_matcher.py.
+
+NOTE: "hello"/"hi" greetings are handled specially in chatbot.py
+(they need access to memory for personalization), but they still
+live here so their response variety is reusable.
 """
 
 import random
@@ -18,12 +25,14 @@ INTENTS = {
             "Great to see you again.",
         ],
     },
-    "greeting_howareyou_variants": {
-        "keywords": ["how are things", "how's it going", "hows it going",
-                      "how you doing", "how do you do"],
+    "wellbeing": {
+        "keywords": ["how are you", "how are things", "how's it going",
+                      "hows it going", "how you doing", "how do you do"],
         "responses": [
             "I'm doing well!",
             "Everything is going smoothly.",
+            "I'm just code, but I'm running well!",
+            "Doing great, thanks for asking!",
         ],
     },
     "greeting_whatsup": {
@@ -53,6 +62,27 @@ INTENTS = {
     "farewell": {
         "keywords": ["bye", "goodbye", "see you", "see ya", "catch you later"],
         "responses": ["Goodbye! See you again.", "Take care!"],
+    },
+    "identity": {
+        "keywords": ["your name", "who are you"],
+        "responses": [
+            "I'm RobiDev AI, your assistant.",
+            "You can call me RobiDev AI!",
+        ],
+    },
+    "capabilities": {
+        "keywords": ["what can you do", "what do you do", "help"],
+        "responses": [
+            "I can chat with you, remember your name, and respond to common questions!",
+            "Right now I can hold a conversation and remember who you are. More features are on the way!",
+        ],
+    },
+    "creator": {
+        "keywords": ["who made you", "who created you", "who built you"],
+        "responses": [
+            "I was built by Robinson as part of the RobiDev AI open-source project.",
+            "Robinson created me! You can find the project on GitHub.",
+        ],
     },
 }
 

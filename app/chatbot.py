@@ -1,10 +1,14 @@
 """
 RobiDev AI - Chatbot Logic
-v0.3: Rule-based responses, now with basic memory support
-(remembers the user's name across sessions) and improved
-intro-phrase detection.
-v0.3 Step 2: added flexible keyword-based intent matching for
-greetings, thanks, and farewells - with response variety.
+v0.3 Step 3: refactored so most conversation topics are handled by
+the intents system (intents.py + intent_matcher.py). This file now
+only handles the two things that need direct access to memory:
+1. Learning/remembering the user's name
+2. Personalizing the hello/hi greeting once we know their name
+
+Everything else (thanks, farewells, "how are you", "who made you",
+etc.) is defined in intents.py and matched automatically - no new
+elif branches needed here when adding future intents.
 """
 
 from intent_matcher import match_intent
@@ -54,17 +58,10 @@ def get_response(user_input: str, memory: dict) -> str:
     if "hello" in text or "hi" in text:
         if memory.get("user_name"):
             return f"Hello {memory['user_name']}! How can I help you today?"
-        # Don't know their name yet: use varied greeting + ask for name
         varied = get_response_for_intent("greeting_hello")
         return f"{varied} What's your name?"
 
-    elif "your name" in text:
-        return "I'm RobiDev AI, your assistant."
-
-    elif "how are you" in text:
-        return "I'm just code, but I'm running well!"
-
-    # --- Flexible intent matching (thanks, farewells, other greetings) ---
+    # --- Everything else: handled by the intents system ---
     intent_reply = match_intent(user_input)
     if intent_reply:
         return intent_reply
