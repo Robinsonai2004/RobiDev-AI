@@ -3,6 +3,8 @@ RobiDev AI - Intent Data
 v0.3 Step 3: keyword-based intents for natural conversation variety.
 v0.4 Step 2: added optional response-repetition avoidance and "expanded"
 follow-up responses (used when the user says "tell me more").
+v0.4 Step 3: added a conversation_repair intent, used when the user
+pushes back on the bot's last answer (e.g. "that's wrong", "no").
 
 HOW TO ADD A NEW INTENT:
 1. Add a new key to INTENTS below, e.g. "joke": {...}
@@ -13,6 +15,10 @@ HOW TO ADD A NEW INTENT:
 NOTE: "hello"/"hi" greetings are handled specially in chatbot.py
 (they need access to memory for personalization), but they still
 live here so their response variety is reusable.
+
+NOTE: "conversation_repair" has no keywords - it's never reached via
+match_intent(). It's looked up directly by name in chatbot.py when the
+user gives negative feedback on the bot's last reply.
 """
 
 import random
@@ -93,6 +99,15 @@ INTENTS = {
         ],
         "expanded": [
             "The project is open-source and hosted at github.com/Robinsonai2004/RobiDev-AI, built step by step directly from a Termux terminal on Android.",
+        ],
+    },
+    "conversation_repair": {
+        "keywords": [],
+        "responses": [
+            "Sorry about that! Could you rephrase or give me a bit more detail?",
+            "Got it — let me know what I got wrong so I can help better.",
+            "My apologies! Could you clarify what you meant?",
+            "Thanks for the feedback. Can you tell me more about what you're looking for?",
         ],
     },
 }
