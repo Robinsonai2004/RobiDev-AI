@@ -14,3 +14,4 @@ MEMORY_FILE = os.path.join(DATA_DIR, "memory.json")
 
 # Bot identity
 BOT_NAME = "RobiDev AI"
+VERSION = "v0.3"

@@ -4,13 +4,14 @@ Handles the main input/output loop.
 """
 
 from chatbot import get_response
+from config import BOT_NAME, VERSION
 from memory import load_memory, save_memory
 
 def main():
     # Load previous memory when the app starts
     memory = load_memory()
 
-    print("RobiDev AI v0.1 — type 'exit' to quit")
+    print(f"{BOT_NAME} {VERSION} — type 'exit' to quit")
 
     # If we already know the user's name, greet them right away
     if memory.get("user_name"):
