@@ -20,6 +20,7 @@ from intent_matcher import match_intent
 from intents import get_response_for_intent, get_expanded_response_for_intent
 from memory import reset_memory
 from context import update_session, reset_session
+from skills import try_skills
 
 
 def normalize(user_input: str) -> str:
@@ -143,6 +144,12 @@ def get_response(user_input: str, memory: dict, session: dict) -> str:
         memory.update(reset_memory())
         reset_session(session)
         return "Okay, I've forgotten everything. Let's start fresh!"
+
+    # --- Utility skills: date/time, calculator, help, version ---
+    skill_match = try_skills(normalized)
+    if skill_match:
+        skill_response, skill_name = skill_match
+        return finish(skill_response, skill_name)
 
     # --- Follow-up: "what is my name?" ---
     if _is_name_question(normalized):
