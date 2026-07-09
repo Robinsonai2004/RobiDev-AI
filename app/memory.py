@@ -30,3 +30,11 @@ def save_memory(memory):
 
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f, indent=2)
+
+
+def reset_memory():
+    """
+    Return a fresh, empty memory structure.
+    Used by the "forget me" command to clear stored data.
+    """
+    return {"user_name": None, "history": []}

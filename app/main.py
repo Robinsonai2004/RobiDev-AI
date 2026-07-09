@@ -1,6 +1,8 @@
 """
 RobiDev AI - Entry Point
 Handles the main input/output loop.
+v0.4 Step 1: memory is now saved after every exchange, not just on
+exit, to protect against data loss from crashes or force-closes.
 """
 
 from chatbot import get_response
@@ -30,7 +32,11 @@ def main():
         # Save each exchange to conversation history
         memory["history"].append({"user": user_input, "bot": response})
 
-    # Save memory to disk before exiting
+        # Auto-save after every exchange, not just on exit
+        save_memory(memory)
+
+    # Final save on exit (covers the case where history changed
+    # but nothing else needed saving after the last message)
     save_memory(memory)
 
 if __name__ == "__main__":
