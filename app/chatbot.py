@@ -3,13 +3,18 @@ RobiDev AI - Chatbot Logic
 v0.4 Step 1: added memory reset ("forget me") support and basic
 input normalization (extra whitespace, repeated punctuation) before
 intent matching. All v0.3 behavior is preserved.
+v0.4 Step 2: added session context awareness (recent exchanges, last
+intent/topic), follow-up understanding ("what is my name?", "tell me
+more"), and response variety that avoids repeating the same reply
+back-to-back. All previous behavior is preserved.
 """
 
 import re
 
 from intent_matcher import match_intent
-from intents import get_response_for_intent
+from intents import get_response_for_intent, get_expanded_response_for_intent
 from memory import reset_memory
+from context import update_session, reset_session
 
 
 def normalize(user_input: str) -> str:
@@ -24,12 +29,16 @@ def normalize(user_input: str) -> str:
     return text
 
 
-def get_response(user_input: str, memory: dict) -> str:
+def get_response(user_input: str, memory: dict, session: dict) -> str:
     # Used for intent matching (whitespace/punctuation collapsed)
     normalized = normalize(user_input)
     # Used for name-detection position-finding (same length as
     # user_input, so slice positions stay aligned)
     lower_text = user_input.lower()
+
+    def finish(response: str, intent_name: str = None) -> str:
+        update_session(session, user_input, response, intent_name)
+        return response
 
     # --- Forget me / reset memory ---
     forget_triggers = ["forget me", "reset memory", "clear memory",
@@ -37,9 +46,31 @@ def get_response(user_input: str, memory: dict) -> str:
     if any(trigger in normalized for trigger in forget_triggers):
         memory.clear()
         memory.update(reset_memory())
+        reset_session(session)
         return "Okay, I've forgotten everything. Let's start fresh!"
 
-    # --- Learn the user's name from several common phrasings ---
+    # --- Follow-up: "what is my name?" ---
+    name_question_triggers = ["what is my name", "what's my name",
+                               "do you know my name", "who am i"]
+    if any(trigger in normalized for trigger in name_question_triggers):
+        if memory.get("user_name"):
+            return finish(f"Your name is {memory['user_name']}!", "ask_name")
+        return finish("I don't know your name yet — what should I call you?", "ask_name")
+
+    # --- Follow-up: "tell me more" expands on the last topic ---
+    followup_triggers = ["tell me more", "more please", "go on", "continue", "what else"]
+    if any(trigger in normalized for trigger in followup_triggers):
+        last_intent = session.get("last_intent")
+        if last_intent:
+            expanded = get_expanded_response_for_intent(last_intent)
+            if expanded:
+                return finish(expanded, last_intent)
+            alt = get_response_for_intent(last_intent, avoid=session.get("last_response"))
+            if alt:
+                return finish(alt, last_intent)
+        return finish("I'm not sure what you'd like more on yet — ask me something first!", None)
+
+    # --- Learn the user's name from several common phrases ---
     direct_triggers = ["my name is", "call me", "you can call me"]
     guarded_triggers = ["i am", "i'm"]
 
@@ -73,18 +104,19 @@ def get_response(user_input: str, memory: dict) -> str:
     if name:
         name = name.strip(".,!?").capitalize()
         memory["user_name"] = name
-        return f"Nice to meet you, {name}! I'll remember that."
+        return finish(f"Nice to meet you, {name}! I'll remember that.", "learn_name")
 
     # --- Personalized greeting if we already know their name ---
     if "hello" in normalized or "hi" in normalized:
         if memory.get("user_name"):
-            return f"Hello {memory['user_name']}! How can I help you today?"
-        varied = get_response_for_intent("greeting_hello")
-        return f"{varied} What's your name?"
+            return finish(f"Hello {memory['user_name']}! How can I help you today?", "greeting_hello")
+        varied = get_response_for_intent("greeting_hello", avoid=session.get("last_response"))
+        return finish(f"{varied} What's your name?", "greeting_hello")
 
     # --- Everything else: handled by the intents system ---
-    intent_reply = match_intent(normalized)
-    if intent_reply:
-        return intent_reply
+    match = match_intent(normalized, avoid=session.get("last_response"))
+    if match:
+        intent_name, intent_reply = match
+        return finish(intent_reply, intent_name)
 
-    return "I heard you, but I don't have a smart reply for that yet."
+    return finish("I heard you, but I don't have a smart reply for that yet.", None)
