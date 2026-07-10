@@ -12,6 +12,11 @@ an example), correction-aware name handling ("no, my name is X"),
 conversation repair detection (e.g. "that's wrong"), and split the
 logic into small helper functions for readability. All previous
 behavior is preserved.
+v0.5 Step 1: added a utility skills dispatcher (date/time, calculator,
+help, version) via skills.py.
+v0.5 Step 2: added a personal knowledge system (learn/recall/update/
+forget arbitrary facts, plus a profile summary) via facts.py. All
+previous behavior is preserved.
 """
 
 import re
@@ -21,6 +26,7 @@ from intents import get_response_for_intent, get_expanded_response_for_intent
 from memory import reset_memory
 from context import update_session, reset_session
 from skills import try_skills
+from facts import try_facts
 
 
 def normalize(user_input: str) -> str:
@@ -150,6 +156,12 @@ def get_response(user_input: str, memory: dict, session: dict) -> str:
     if skill_match:
         skill_response, skill_name = skill_match
         return finish(skill_response, skill_name)
+
+    # --- Personal knowledge: learn, recall, update, forget facts ---
+    fact_match = try_facts(normalized, user_input, lower_text, memory)
+    if fact_match:
+        fact_response, fact_topic = fact_match
+        return finish(fact_response, fact_topic)
 
     # --- Follow-up: "what is my name?" ---
     if _is_name_question(normalized):
