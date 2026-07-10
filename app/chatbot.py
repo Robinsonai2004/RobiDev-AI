@@ -17,14 +17,31 @@ help, version) via skills.py.
 v0.5 Step 2: added a personal knowledge system (learn/recall/update/
 forget arbitrary facts, plus a profile summary) via facts.py. All
 previous behavior is preserved.
+v0.5 Step 3: all follow-up/context logic (elaboration phrases, pronoun
+references like "it", and free-text subject tracking such as "I'm
+learning Python") now lives in context.py. chatbot.py just calls into
+it, keeping this file focused on conversational routing. Also fixed a
+latent bug where phrases like "I'm learning Python" or "I'm using X"
+could have been misread as name-learning attempts - subject-tracking
+now runs before name-learning to take precedence correctly. All
+previous behavior is preserved.
 """
 
 import re
 
 from intent_matcher import match_intent
-from intents import get_response_for_intent, get_expanded_response_for_intent
+from intents import get_response_for_intent
 from memory import reset_memory
-from context import update_session, reset_session
+from context import (
+    update_session,
+    reset_session,
+    is_elaboration_request,
+    handle_followup,
+    try_track_subject,
+    is_pronoun_reference,
+    build_pronoun_followup,
+    has_focus,
+)
 from skills import try_skills
 from facts import try_facts
 
@@ -51,24 +68,6 @@ def _is_name_question(normalized: str) -> bool:
     triggers = ["what is my name", "what's my name",
                 "do you know my name", "who am i"]
     return any(trigger in normalized for trigger in triggers)
-
-
-def _is_elaboration_request(normalized: str) -> bool:
-    """
-    Matches "tell me more" style follow-ups. Short, ambiguous words
-    ("why", "how") require an exact match so they don't accidentally
-    trigger inside unrelated phrases like "how are you".
-    """
-    exact_words = {"why", "how"}
-    phrases = [
-        "tell me more", "more please", "go on", "continue", "what else",
-        "why is that", "how so", "can you explain", "explain more",
-        "give me an example", "example", "what do you mean",
-    ]
-    stripped = normalized.strip("!.?")
-    if stripped in exact_words:
-        return True
-    return any(phrase in normalized for phrase in phrases)
 
 
 def _is_repair_feedback(normalized: str) -> bool:
@@ -123,19 +122,6 @@ def _extract_name(user_input: str, lower_text: str):
     return name
 
 
-def _handle_elaboration(session: dict):
-    """Build a 'tell me more'-style response based on the last topic."""
-    last_intent = session.get("last_intent")
-    if last_intent:
-        expanded = get_expanded_response_for_intent(last_intent)
-        if expanded:
-            return expanded, last_intent
-        alt = get_response_for_intent(last_intent, avoid=session.get("last_response"))
-        if alt:
-            return alt, last_intent
-    return "I'm not sure what you'd like more on yet — ask me something first!", None
-
-
 def get_response(user_input: str, memory: dict, session: dict) -> str:
     normalized = normalize(user_input)
     lower_text = user_input.lower()
@@ -169,15 +155,23 @@ def get_response(user_input: str, memory: dict, session: dict) -> str:
             return finish(f"Your name is {memory['user_name']}!", "ask_name")
         return finish("I don't know your name yet — what should I call you?", "ask_name")
 
-    # --- Follow-up: elaboration on the last topic ---
-    if _is_elaboration_request(normalized):
-        response, intent_name = _handle_elaboration(session)
-        return finish(response, intent_name)
+    # --- Follow-up: elaboration on the current topic ---
+    if is_elaboration_request(normalized):
+        response = handle_followup(session)
+        return finish(response, None)
 
     # --- Conversation repair: user is pushing back on the last answer ---
     if _is_repair_feedback(normalized):
         repair_reply = get_response_for_intent("conversation_repair", avoid=session.get("last_response"))
         return finish(repair_reply, None)
+
+    # --- Track free-text subjects (e.g. "I'm learning Python", "explain recursion") ---
+    # NOTE: this runs BEFORE name-learning on purpose - phrases like
+    # "I'm learning Python" or "I'm using Termux" would otherwise be
+    # misread by the guarded name triggers below ("i'm" + next word).
+    subject_ack = try_track_subject(user_input, lower_text, session)
+    if subject_ack:
+        return finish(subject_ack, None)
 
     # --- Learn (or correct) the user's name ---
     name = _extract_name(user_input, lower_text)
@@ -201,5 +195,9 @@ def get_response(user_input: str, memory: dict, session: dict) -> str:
     if match:
         intent_name, intent_reply = match
         return finish(intent_reply, intent_name)
+
+    # --- Last resort: a bare pronoun reference to something we discussed ---
+    if is_pronoun_reference(normalized) and has_focus(session):
+        return finish(build_pronoun_followup(session), None)
 
     return finish("I heard you, but I don't have a smart reply for that yet.", None)
