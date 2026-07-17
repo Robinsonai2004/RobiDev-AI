@@ -56,6 +56,7 @@ from context import update_session
 from skills import try_skills
 from facts import try_facts
 from intent_matcher import match_intent
+from echo import handle as handle_echo
 from conversation import (
     is_forget_request,
     handle_forget,
@@ -94,6 +95,7 @@ def _handle_intents(ctx: dict):
 
 CAPABILITIES = [
     ("skills", _handle_skills),
+    ("echo", handle_echo),
     ("facts", _handle_facts),
     ("name_question", handle_name_question),
     ("elaboration", handle_elaboration),
