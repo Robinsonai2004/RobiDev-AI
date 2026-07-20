@@ -56,6 +56,7 @@ from context import update_session
 from skills import try_skills
 from facts import try_facts
 from intent_matcher import match_intent
+from weather import handle as handle_weather
 from notes import handle as handle_notes
 from echo import handle as handle_echo
 from conversation import (
@@ -99,6 +100,7 @@ CAPABILITIES = [
     ("echo", handle_echo),
     ("facts", _handle_facts),
     ("notes", handle_notes),
+    ("weather", handle_weather),
     ("name_question", handle_name_question),
     ("elaboration", handle_elaboration),
     ("repair", handle_repair),

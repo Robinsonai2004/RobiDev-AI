@@ -15,3 +15,8 @@ MEMORY_FILE = os.path.join(DATA_DIR, "memory.json")
 # Bot identity
 BOT_NAME = "RobiDev AI"
 VERSION = "v0.3"
+
+# Weather API (v0.6 Step 4)
+# Reads from an environment variable, never hardcoded. Set it in Termux with:
+#   echo 'export OPENWEATHER_API_KEY="your_key_here"' >> ~/.bashrc && source ~/.bashrc
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
