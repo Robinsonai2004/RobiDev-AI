@@ -56,6 +56,7 @@ from context import update_session
 from skills import try_skills
 from facts import try_facts
 from intent_matcher import match_intent
+from web_search import handle as handle_web_search
 from weather import handle as handle_weather
 from notes import handle as handle_notes
 from echo import handle as handle_echo
@@ -108,6 +109,7 @@ CAPABILITIES = [
     ("name_learning", handle_name_learning),
     ("greeting", handle_greeting),
     ("intents", _handle_intents),
+    ("web_search", handle_web_search),
     ("pronoun_fallback", handle_pronoun_fallback),
 ]
 
