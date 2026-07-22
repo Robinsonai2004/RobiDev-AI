@@ -1,6 +1,6 @@
 """
 RobiDev AI - Utility Skills
-v0.5 Step 1: built-in utility skills (date/time, calculator, help,
+v0.6: built-in utility skills (date/time, calculator, help,
 version/about). Kept separate from chatbot.py's conversational logic
 so new skills can be added here without touching intent matching.
 
@@ -13,6 +13,7 @@ HOW TO ADD A NEW SKILL:
 
 import re
 from datetime import datetime
+from config import VERSION
 
 
 # --- Date & Time ---------------------------------------------------------
@@ -162,7 +163,7 @@ def try_version(normalized: str):
     if normalized.strip("!.?") in _VERSION_EXACT:
         return (
             "RobiDev AI\n"
-            "Version: v0.5 Step 1\n\n"
+            f"Version: {VERSION}\n\n"
             "A personal, open-source chatbot-turned-assistant built in "
             "Python and run in Termux. Supports conversation memory, "
             "follow-up understanding, and utility skills (date/time, "

@@ -14,7 +14,7 @@ MEMORY_FILE = os.path.join(DATA_DIR, "memory.json")
 
 # Bot identity
 BOT_NAME = "RobiDev AI"
-VERSION = "v0.3"
+VERSION = "v0.6"
 
 # Weather API (v0.6 Step 4)
 # Reads from an environment variable, never hardcoded. Set it in Termux with:
