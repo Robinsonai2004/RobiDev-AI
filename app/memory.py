@@ -15,16 +15,17 @@ def load_memory():
     (first time running the app), return a default empty structure.
     """
     if not os.path.exists(MEMORY_FILE):
-        return {"user_name": None, "history": [], "facts": {}, "notes": []}
+        return {"user_name": None, "history": [], "facts": {}, "notes": [], "reminders": []}
 
     with open(MEMORY_FILE, "r") as f:
         memory = json.load(f)
 
     # Backward compatibility: memory files saved before v0.5 Step 2
-    # won't have "facts" yet; files saved before v0.6 Step 3 won't
-    # have "notes" yet.
+    # won't have "facts" yet; before v0.6 Step 3 won't have "notes";
+    # before v0.6 Step 7 won't have "reminders".
     memory.setdefault("facts", {})
     memory.setdefault("notes", [])
+    memory.setdefault("reminders", [])
     return memory
 
 
@@ -44,4 +45,4 @@ def reset_memory():
     Return a fresh, empty memory structure. Used by the "forget me"
     command to clear stored data.
     """
-    return {"user_name": None, "history": [], "facts": {}, "notes": []}
+    return {"user_name": None, "history": [], "facts": {}, "notes": [], "reminders": []}

@@ -5,11 +5,6 @@ chatbot.py deciding what to do, it builds a small request context and
 hands it to this router, which tries each registered capability in
 turn and returns the first response it gets.
 
-    User message -> chatbot.py -> capability_router.py -> {
-        skills, facts, conversation (core), intents,
-        knowledge (future), plugins (future), ...
-    } -> final response
-
 HOW TO ADD A NEW CAPABILITY (e.g. weather.py):
 1. Write weather.py with a handler function following this contract:
 
@@ -36,9 +31,7 @@ THE CONTEXT DICT (ctx) passed to every handler contains:
 NOTE ON EXISTING MODULES: skills.py and facts.py were built (in v0.5)
 with slightly different function signatures than the ctx-based
 contract above. Rather than risk changing already-tested code, they
-are wired in below via tiny adapter functions. Any brand-new
-capability should be written directly against the ctx contract and
-won't need an adapter at all.
+are wired in below via tiny adapter functions.
 
 "forget me" is handled as a special pre-check before the registry
 loop, since resetting everything needs to bypass normal topic-
@@ -48,6 +41,13 @@ FAULT ISOLATION: each handler runs inside a try/except. A future
 capability that hits the network (weather, web_search) or otherwise
 throws should not be able to crash the whole router - it's skipped
 and the next capability in line gets a chance instead.
+
+v0.6 Step 7: reminders.check_due_reminders() is also called here,
+before the registry loop, on every message except "forget me" (which
+is about to wipe the reminders it would be announcing). Unlike
+"forget me", it doesn't return early - it only decides whether a
+banner gets prepended to whatever response the registry loop or the
+fallback eventually produces.
 """
 
 import re
@@ -60,6 +60,7 @@ from web_search import handle as handle_web_search
 from weather import handle as handle_weather
 from notes import handle as handle_notes
 from echo import handle as handle_echo
+from reminders import handle as handle_reminders, check_due_reminders
 from conversation import (
     is_forget_request,
     handle_forget,
@@ -102,6 +103,7 @@ CAPABILITIES = [
     ("facts", _handle_facts),
     ("notes", handle_notes),
     ("weather", handle_weather),
+    ("reminders", handle_reminders),
     ("name_question", handle_name_question),
     ("elaboration", handle_elaboration),
     ("repair", handle_repair),
@@ -114,6 +116,12 @@ CAPABILITIES = [
 ]
 
 FALLBACK_RESPONSE = "I heard you, but I don't have a smart reply for that yet."
+
+
+def _with_banner(banner, response):
+    if not banner:
+        return response
+    return f"{banner}\n\n{response}"
 
 
 def route(user_input: str, memory: dict, session: dict) -> str:
@@ -129,6 +137,8 @@ def route(user_input: str, memory: dict, session: dict) -> str:
     if is_forget_request(normalized):
         return handle_forget(ctx)
 
+    reminder_banner = check_due_reminders(memory)
+
     for _name, handler in CAPABILITIES:
         try:
             result = handler(ctx)
@@ -137,7 +147,7 @@ def route(user_input: str, memory: dict, session: dict) -> str:
         if result:
             response, topic_name = result
             update_session(session, user_input, response, topic_name)
-            return response
+            return _with_banner(reminder_banner, response)
 
     update_session(session, user_input, FALLBACK_RESPONSE, None)
-    return FALLBACK_RESPONSE
+    return _with_banner(reminder_banner, FALLBACK_RESPONSE)
